@@ -36,14 +36,30 @@
 */
 package org.webharvest.runtime.web;
 
-import org.apache.commons.httpclient.*;
-import org.apache.commons.httpclient.cookie.CookiePolicy;
-import org.apache.commons.httpclient.auth.AuthScope;
-import org.apache.commons.httpclient.contrib.ssl.EasySSLProtocolSocketFactory;
-import org.apache.commons.httpclient.methods.GetMethod;
-import org.apache.commons.httpclient.methods.PostMethod;
-import org.apache.commons.httpclient.params.HttpClientParams;
-import org.apache.commons.httpclient.protocol.Protocol;
+import org.apache.http.Header;
+import org.apache.http.HttpHost;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.NameValuePair;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.NTCredentials;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CookieStore;
+import org.apache.http.client.CredentialsProvider;
+import org.apache.http.client.config.CookieSpecs;
+import org.apache.http.client.config.RequestConfig;
+import org.apache.http.client.entity.UrlEncodedFormEntity;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.protocol.HttpClientContext;
+import org.apache.http.conn.HttpClientConnectionManager;
+import org.apache.http.impl.client.BasicCookieStore;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.message.BasicHeader;
+import org.webharvest.runtime.ProxyConfiguration;
 import org.webharvest.utils.CommonUtil;
 
 import java.io.IOException;
@@ -62,71 +78,53 @@ public class HttpClientManager {
 
     public static final String DEFAULT_USER_AGENT = "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.8.0.1) Gecko/20060111 Firefox/1.5.0.1";
 
-    static {
+    /*static {
         // registers default handling for https 
         Protocol.registerProtocol("https", new Protocol("https", new EasySSLProtocolSocketFactory(), 443));
-    }
+    }*/
 
-    private HttpClient client;
-
+    private CloseableHttpClient client;
+    private HttpClientContext context;
     private HttpInfo httpInfo;
-
+    private CookieStore cookieStore;
+    private RequestConfig globalConfig;
+    
+    private HttpClientConnectionManager connectionManager;
+    private String proxyHost;
+    private String proxyPort;
+    private String username;
+    private String password;
+    private String host;
+    private String domain;
+    private String workStation;
+    boolean proxyEnabled;
     /**
      * Constructor.
      */
     public HttpClientManager() {
-        client = new HttpClient();
-        httpInfo = new HttpInfo(client);
-        
-        HttpClientParams clientParams = new HttpClientParams();
-        clientParams.setBooleanParameter("http.protocol.allow-circular-redirects", true);
-        client.setParams(clientParams);
+    	this.proxyEnabled = false;
+    	connectionManager = HttpConnectionPoolHelper.getConnectionManager();
+        globalConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).build();
+		cookieStore = new BasicCookieStore();
+		context.setCookieStore(cookieStore);
+        context = HttpClientContext.create();
     }
+    
+    
+    public HttpClientManager(ProxyConfiguration proxyConfiguration) {
+    	this();
+    	this.proxyEnabled = true;
+    	this.proxyHost = proxyConfiguration.getProxyHost();
+    	this.proxyPort = proxyConfiguration.getProxyPort();
+    	this.username = proxyConfiguration.getUsername();
+    	this.password = proxyConfiguration.getPassword();
+    	this.domain = proxyConfiguration.getDomain();
+    	this.workStation = proxyConfiguration.getWorkStation();
+    }    
 
-    public void setCookiePolicy(String cookiePolicy) {
-        if ( "browser".equalsIgnoreCase(cookiePolicy) ) {
-            client.getParams().setCookiePolicy(CookiePolicy.BROWSER_COMPATIBILITY);
-        } else if ( "ignore".equalsIgnoreCase(cookiePolicy) ) {
-            client.getParams().setCookiePolicy(CookiePolicy.IGNORE_COOKIES);
-        } else if ( "netscape".equalsIgnoreCase(cookiePolicy) ) {
-            client.getParams().setCookiePolicy(CookiePolicy.NETSCAPE);
-        } else if ( "rfc_2109".equalsIgnoreCase(cookiePolicy) ) {
-            client.getParams().setCookiePolicy(CookiePolicy.RFC_2109);
-        } else {
-            client.getParams().setCookiePolicy(CookiePolicy.DEFAULT);
-        }
-    }
-
-    /**
-     * Defines HTTP proxy for the client with specified host and port
-     * @param hostName
-     * @param hostPort
-     */
-    public void setHttpProxy(String hostName, int hostPort) {
-        client.getHostConfiguration().setProxyHost(new ProxyHost(hostName, hostPort));
-    }
-
-    /**
-     * Defines HTTP proxy for the client with specified host
-     * @param hostName
-     */
-    public void setHttpProxy(String hostName) {
-    	client.getHostConfiguration().setProxyHost(new ProxyHost(hostName));
-    }
-
-
-    /**
-     * Defines user credintials for the HTTP proxy server
-     * @param username
-     * @param password
-     */
-    public void setHttpProxyCredentials(String username, String password, String host, String domain) {
-        Credentials credentials =
-                ( host == null || domain == null || "".equals(host.trim()) || "".equals(domain.trim()) ) ?
-                    new UsernamePasswordCredentials(username, password) :
-                    new NTCredentials(username, password, host, domain);
-        client.getState().setProxyCredentials( AuthScope.ANY, credentials);
-    }
+//    public HttpResponseWrapper execute(HttpGet httpGet){
+//    	
+//    }
     
     public HttpResponseWrapper execute(
     		String methodType, 
@@ -135,7 +133,7 @@ public class HttpClientManager {
     		String username, 
     		String password,
     		List params, 
-    		Map headers ) {
+    		Map headers ) throws UnsupportedEncodingException {
         if ( !url.startsWith("http://") && !url.startsWith("https://") ) {
             url = "http://" + url;
         }
@@ -146,16 +144,15 @@ public class HttpClientManager {
         if ( username != null && password != null ) {
         	try {
 				URL urlObj = new URL(url);
-	            client.getState().setCredentials(
-                    new AuthScope(urlObj.getHost(), urlObj.getPort()),
-                    new UsernamePasswordCredentials(username, password)
-                );
+				CredentialsProvider credsProvider = new BasicCredentialsProvider();
+				credsProvider.setCredentials(new AuthScope(AuthScope.ANY), new UsernamePasswordCredentials(username, password));
+				context.setCredentialsProvider(credsProvider);
         	} catch (MalformedURLException e) {
 				e.printStackTrace();
 			}
         }
         
-        HttpMethodBase method;
+        HttpRequestBase method;
         if ( "post".equalsIgnoreCase(methodType) ) {
             method = createPostMethod(url, params);
         } else {
@@ -170,37 +167,34 @@ public class HttpClientManager {
             while (it.hasNext()) {
                 String headerName =  (String) it.next();
                 String headerValue = (String) headers.get(headerName);
-                method.addRequestHeader(new Header(headerName, headerValue));
+                method.addHeader(new BasicHeader(headerName, headerValue));
             }
         }
-
+        HttpResponseWrapper wrapper  =null;
         try {
-            int statusCode = client.executeMethod(method);
+            wrapper  = new HttpResponseWrapper(client.execute(method));
             
             // if there is redirection, try to download redirection page
-            if ((statusCode == HttpStatus.SC_MOVED_TEMPORARILY) ||
-                (statusCode == HttpStatus.SC_MOVED_PERMANENTLY) ||
-                (statusCode == HttpStatus.SC_SEE_OTHER) ||
-                (statusCode == HttpStatus.SC_TEMPORARY_REDIRECT)) {
-                Header header = method.getResponseHeader("location");
+            if ((wrapper.getStatusCode() == HttpStatus.SC_MOVED_TEMPORARILY) ||
+                (wrapper.getStatusCode() == HttpStatus.SC_MOVED_PERMANENTLY) ||
+                (wrapper.getStatusCode() == HttpStatus.SC_SEE_OTHER) ||
+                (wrapper.getStatusCode() == HttpStatus.SC_TEMPORARY_REDIRECT)) {
+                Header header = (Header)wrapper.getHeaders().get("location");
                 if (header != null) {
                     String newURI = header.getValue();
                     if ( newURI != null && !newURI.equals("") ) {
                     	newURI = CommonUtil.fullUrl(url, newURI);
                         method.releaseConnection();
-                        method = new GetMethod(newURI);
-                        identifyAsDefaultBrowser(method);
-                        client.executeMethod(method);
+                        //method = new HttpGet(newURI);
+                        //identifyAsDefaultBrowser(method);
+                        return execute("get", newURI, charset, username, password, params, headers);
                     }
                 }
             }
 
-            HttpResponseWrapper httpResponseWrapper = new HttpResponseWrapper(method);
+            this.httpInfo.setResponse(wrapper);
 
-            // updates HTTP info with response's details
-            this.httpInfo.setResponse(httpResponseWrapper);
-
-            return httpResponseWrapper;
+            return wrapper;
         } catch (IOException e) {
             throw new org.webharvest.exception.HttpException("IO error during HTTP execution for URL: " + url, e);
         } finally {
@@ -212,12 +206,12 @@ public class HttpClientManager {
      * Defines "User-Agent" HTTP header.
      * @param method
      */
-    private void identifyAsDefaultBrowser(HttpMethodBase method) {
-        method.addRequestHeader(new Header("User-Agent", DEFAULT_USER_AGENT));
+    private void identifyAsDefaultBrowser(HttpRequestBase method) {
+        method.addHeader(new BasicHeader("User-Agent", DEFAULT_USER_AGENT));
     }
 
-    private HttpMethodBase createPostMethod(String url, List params) {
-        PostMethod method = new PostMethod(url);
+    private HttpRequestBase createPostMethod(String url, List params) throws UnsupportedEncodingException {
+        HttpPost method = new HttpPost(url);
 
         if (params != null) {
             NameValuePair[] paramArray = new NameValuePair[params.size()];
@@ -227,13 +221,13 @@ public class HttpClientManager {
                 paramArray[index++] = (NameValuePair) it.next();
             }
 
-            method.setRequestBody(paramArray);
+            method.setEntity(new UrlEncodedFormEntity(params));
         }
 
         return method;
     }
 
-    private GetMethod createGetMethod(String url, List params, String charset) {
+    private HttpRequestBase createGetMethod(String url, List params, String charset) {
         if (params != null) {
             String urlParams = "";
             Iterator it = params.iterator();
@@ -258,10 +252,20 @@ public class HttpClientManager {
             }
         }
 
-        return new GetMethod(url);
+        return new HttpGet(url);
     }
 
-    public HttpClient getHttpClient() {
+    public CloseableHttpClient getHttpClient() {
+    	if(proxyEnabled){
+    		HttpHost proxy = new HttpHost(this.proxyHost, Integer.parseInt(this.proxyPort));
+    		if(this.workStation!=null){
+    			CredentialsProvider credsProvider = new BasicCredentialsProvider();
+    			credsProvider.setCredentials(new AuthScope(this.proxyHost, Integer.parseInt(this.proxyPort)), new NTCredentials(this.username, this.password, this.workStation, this.domain));
+    			context.setCredentialsProvider(credsProvider);
+    		}
+    		client = HttpClients.custom().setDefaultRequestConfig(globalConfig).setDefaultCookieStore(cookieStore).setConnectionManager(connectionManager).setProxy(proxy).build();
+    	}else
+    		client = HttpClients.custom().setDefaultRequestConfig(globalConfig).setDefaultCookieStore(cookieStore).setConnectionManager(connectionManager).build();
         return client;
     }
 

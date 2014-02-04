@@ -37,17 +37,17 @@
 
 package org.webharvest.runtime.web;
 
-import org.apache.commons.httpclient.HttpClient;
-
-import java.util.Map;
 import java.util.HashMap;
+import java.util.Map;
+
+import org.apache.http.impl.client.CloseableHttpClient;
 
 /**
  * Class offers access to HTTP client and response details to the user. 
  */
 public class HttpInfo {
 
-    public HttpClient client;
+    public CloseableHttpClient client;
     
     public long contentLength = 0;
     public String charset = "";
@@ -59,7 +59,7 @@ public class HttpInfo {
     public long totalLength = 0;
     public int totalResponses = 0;
 
-    public HttpInfo(HttpClient client) {
+    public HttpInfo(CloseableHttpClient client) {
         this.client = client;
     }
 

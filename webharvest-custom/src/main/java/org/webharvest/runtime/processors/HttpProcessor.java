@@ -36,7 +36,7 @@
 */
 package org.webharvest.runtime.processors;
 
-import org.apache.commons.httpclient.NameValuePair;
+import org.apache.http.message.BasicNameValuePair;
 import org.webharvest.definition.HttpDef;
 import org.webharvest.exception.HttpException;
 import org.webharvest.runtime.Scraper;
@@ -94,9 +94,14 @@ public class HttpProcessor extends BaseProcessor {
         new BodyProcessor(httpDef).execute(scraper, context);
 
         HttpClientManager manager = scraper.getHttpClientManager();
-        manager.setCookiePolicy(cookiePolicy);
+        //manager.setCookiePolicy(cookiePolicy);
 
-        HttpResponseWrapper res = manager.execute(method, url, charset, username, password, httpParams, httpHeaderMap);
+        HttpResponseWrapper res=null;
+		try {
+			res = manager.execute(method, url, charset, username, password, httpParams, httpHeaderMap);
+		} catch (UnsupportedEncodingException e1) {
+			throw new RuntimeException(e1);
+		}
 
         scraper.removeRunningHttpProcessor();
 
@@ -170,7 +175,7 @@ public class HttpProcessor extends BaseProcessor {
     }
     
     protected void addHttpParam(String name, String value) {
-    	httpParams.add( new NameValuePair(name, value) );
+    	httpParams.add( new BasicNameValuePair(name, value) );
     }
     
     protected void addHttpHeader(String name, String value) {

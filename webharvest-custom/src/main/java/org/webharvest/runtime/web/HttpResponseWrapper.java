@@ -36,14 +36,15 @@
 */
 package org.webharvest.runtime.web;
 
-import org.apache.commons.httpclient.Header;
-import org.apache.commons.httpclient.HttpMethodBase;
-
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.http.Header;
+import org.apache.http.HttpResponse;
 
 /**
  * Class defines http server response. 
@@ -61,14 +62,23 @@ public class HttpResponseWrapper {
 	 * Constructor - defines response result based on specified HttpMethodBase instance.
 	 * @param method
 	 */
-	public HttpResponseWrapper(HttpMethodBase method) {
+	public HttpResponseWrapper(HttpResponse response) {
         try {
-			this.body = method.getResponseBody();
+        	ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+        	int nRead;
+        	byte[] data = new byte[16384];
+        	InputStream is = response.getEntity().getContent();
+        	while ((nRead = is.read(data, 0, data.length)) != -1) {
+        	  buffer.write(data, 0, nRead);
+        	}
+        	buffer.flush();
+        	body = buffer.toByteArray();
         } catch (IOException e) {
-			// todo: handle exception
+			throw new RuntimeException(e);
         }
 		
-		Header[] headerArray = method.getResponseHeaders();
+		Header[] headerArray = response.getAllHeaders();
         if (headerArray != null) {
         	for (int i = 0; i < headerArray.length; i++) {
         		String currName = headerArray[i].getName();
@@ -82,9 +92,9 @@ public class HttpResponseWrapper {
         	}
         }
 
-        this.charset = method.getResponseCharSet();
-        this.statusCode = method.getStatusCode();
-        this.statusText = method.getStatusText();
+        //this.charset = response.g
+        this.statusCode = response.getStatusLine().getStatusCode();
+        this.statusText = response.getStatusLine().getReasonPhrase();
 
     }
 

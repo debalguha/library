@@ -119,6 +119,18 @@ public class Scraper {
         this.scriptEngine = configuration.createScriptEngine(this.context);
         this.usedScriptEngines.put(configuration.getDefaultScriptEngine(), this.scriptEngine);
     }
+    
+    public Scraper(ScraperConfiguration configuration, String workingDir, ProxyConfiguration proxyConfig) {
+        this.configuration = configuration;
+        this.runtimeConfig = new RuntimeConfig();
+        this.workingDir = CommonUtil.adaptFilename(workingDir);
+        if(proxyConfig!=null)
+        	this.httpClientManager = new HttpClientManager(proxyConfig);
+
+        this.context = new ScraperContext(this);
+        this.scriptEngine = configuration.createScriptEngine(this.context);
+        this.usedScriptEngines.put(configuration.getDefaultScriptEngine(), this.scriptEngine);
+    }    
 
     /**
      * Adds parameter with specified name and value to the context.

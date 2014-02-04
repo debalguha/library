@@ -75,6 +75,7 @@ public class SettingsDialog extends JDialog implements ChangeListener {
     private JTextField proxyPasswordField;
     private JTextField ntlmHostField;
     private JTextField ntlmDomainField;
+    private JTextField worskStationField;
     private JCheckBox proxyEnabledCheckBox;
     private JCheckBox proxyAuthEnabledCheckBox;
     private JCheckBox ntlmEnabledCheckBox;
@@ -85,6 +86,7 @@ public class SettingsDialog extends JDialog implements ChangeListener {
     private JLabel proxyServerLabel;
     private JLabel ntlmHostLabel;
     private JLabel ntlmDomainLabel;
+    private JLabel workStationLabel;
 
     private JCheckBox showHierarchyByDefaultCheckBox;
     private JCheckBox showLogByDefaultCheckBox;
@@ -134,6 +136,7 @@ public class SettingsDialog extends JDialog implements ChangeListener {
         proxyPasswordField = new MyTextField();
         ntlmHostField = new MyTextField();
         ntlmDomainField = new MyTextField();
+        worskStationField = new MyTextField();
 
         proxyEnabledCheckBox = new JCheckBox("Proxy server enabled");
         proxyEnabledCheckBox.addChangeListener(this);
@@ -234,6 +237,15 @@ public class SettingsDialog extends JDialog implements ChangeListener {
         constraints.gridx = 1;
         constraints.gridy = 9;
         generalPanel.add(ntlmDomainField, constraints );
+        
+        constraints.gridx = 0;
+        constraints.gridy = 9;
+        workStationLabel = new JLabel("Work Station");
+        generalPanel.add(workStationLabel, constraints );
+
+        constraints.gridx = 1;
+        constraints.gridy = 9;
+        generalPanel.add(worskStationField, constraints );        
 
         JPanel buttonPanel = new JPanel( new FlowLayout(FlowLayout.CENTER) );
 
@@ -327,6 +339,7 @@ public class SettingsDialog extends JDialog implements ChangeListener {
         settings.setNtlmAuthEnabled( this.ntlmEnabledCheckBox.isSelected() );
         settings.setNtlmHost( this.ntlmHostField.getText() );
         settings.setNtlmDomain( this.ntlmDomainField.getText() );
+        settings.setWorkstation(this.worskStationField.getText());
 
         settings.setShowHierarchyByDefault(this.showHierarchyByDefaultCheckBox.isSelected());
         settings.setShowLogByDefault(this.showLogByDefaultCheckBox.isSelected());

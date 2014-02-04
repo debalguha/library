@@ -56,6 +56,7 @@ public class Settings implements Serializable {
     private boolean isNtlmAuthEnabled;
     private String ntlmHost;
     private String ntlmDomain;
+    private String workstation;
 
     private boolean isShowHierarchyByDefault = true;
     private boolean isShowLogByDefault = true;
@@ -217,6 +218,7 @@ public class Settings implements Serializable {
         out.writeBoolean(isNtlmAuthEnabled);
         writeString(out, ntlmHost);
         writeString(out, ntlmDomain);
+        writeString(out, workstation);
 
         out.writeBoolean(isShowHierarchyByDefault);
         out.writeBoolean(isShowLogByDefault);
@@ -242,6 +244,7 @@ public class Settings implements Serializable {
         isNtlmAuthEnabled = in.readBoolean();
         ntlmHost = readString(in);
         ntlmDomain = readString(in);
+        workstation = readString(in);
 
         isShowHierarchyByDefault = in.readBoolean();
         isShowLogByDefault = in.readBoolean();
@@ -268,5 +271,13 @@ public class Settings implements Serializable {
         oos.close();
         fos.close();
     }
+
+	public String getWorkstation() {
+		return workstation;
+	}
+
+	public void setWorkstation(String workstation) {
+		this.workstation = workstation;
+	}
 
 }
