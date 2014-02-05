@@ -239,12 +239,12 @@ public class SettingsDialog extends JDialog implements ChangeListener {
         generalPanel.add(ntlmDomainField, constraints );
         
         constraints.gridx = 0;
-        constraints.gridy = 9;
+        constraints.gridy = 10;
         workStationLabel = new JLabel("Work Station");
         generalPanel.add(workStationLabel, constraints );
 
         constraints.gridx = 1;
-        constraints.gridy = 9;
+        constraints.gridy = 10;
         generalPanel.add(worskStationField, constraints );        
 
         JPanel buttonPanel = new JPanel( new FlowLayout(FlowLayout.CENTER) );

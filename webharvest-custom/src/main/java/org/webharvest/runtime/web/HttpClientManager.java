@@ -36,9 +36,17 @@
 */
 package org.webharvest.runtime.web;
 
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.net.MalformedURLException;
+import java.net.URL;
+import java.net.URLEncoder;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.http.Header;
 import org.apache.http.HttpHost;
-import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.NameValuePair;
 import org.apache.http.auth.AuthScope;
@@ -61,15 +69,6 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.message.BasicHeader;
 import org.webharvest.runtime.ProxyConfiguration;
 import org.webharvest.utils.CommonUtil;
-
-import java.io.IOException;
-import java.io.UnsupportedEncodingException;
-import java.net.MalformedURLException;
-import java.net.URL;
-import java.net.URLEncoder;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 
 /**
  * HTTP client functionality.
@@ -94,7 +93,6 @@ public class HttpClientManager {
     private String proxyPort;
     private String username;
     private String password;
-    private String host;
     private String domain;
     private String workStation;
     boolean proxyEnabled;
@@ -106,8 +104,8 @@ public class HttpClientManager {
     	connectionManager = HttpConnectionPoolHelper.getConnectionManager();
         globalConfig = RequestConfig.custom().setCookieSpec(CookieSpecs.BEST_MATCH).build();
 		cookieStore = new BasicCookieStore();
-		context.setCookieStore(cookieStore);
         context = HttpClientContext.create();
+        context.setCookieStore(cookieStore);
     }
     
     
@@ -120,6 +118,8 @@ public class HttpClientManager {
     	this.password = proxyConfiguration.getPassword();
     	this.domain = proxyConfiguration.getDomain();
     	this.workStation = proxyConfiguration.getWorkStation();
+    	this.client = getHttpClient();
+    	this.httpInfo = new HttpInfo(client);
     }    
 
 //    public HttpResponseWrapper execute(HttpGet httpGet){
@@ -172,7 +172,7 @@ public class HttpClientManager {
         }
         HttpResponseWrapper wrapper  =null;
         try {
-            wrapper  = new HttpResponseWrapper(client.execute(method));
+            wrapper  = new HttpResponseWrapper(client.execute(method, context));
             
             // if there is redirection, try to download redirection page
             if ((wrapper.getStatusCode() == HttpStatus.SC_MOVED_TEMPORARILY) ||

@@ -37,6 +37,7 @@
 
 import org.apache.log4j.PropertyConfigurator;
 import org.webharvest.definition.ScraperConfiguration;
+import org.webharvest.runtime.ProxyConfiguration;
 import org.webharvest.runtime.Scraper;
 import org.webharvest.gui.Ide;
 import org.webharvest.utils.CommonUtil;
@@ -137,30 +138,38 @@ public class CommandLine {
                 config = new ScraperConfiguration(configFilePath);
             }
 
-            Scraper scraper = new Scraper(config, workingDir);
+            String proxyHost = (String) params.get("proxyhost");
+            String proxyPort = null;
+            if ( proxyHost != null && !"".equals(proxyHost)) 
+                proxyPort = (String) params.get("proxyport");
+            
 
+            String proxyUser = (String) params.get("proxyuser");
+            String proxyNTHost = null;
+            String proxyPassword = null;
+            String proxyNTDomain = null;
+            String proxyNTWorkstation = null;
+            if ( proxyUser != null && !"".equals(proxyUser) ) {
+                proxyPassword = (String) params.get("proxypassword");
+                proxyNTHost = (String) params.get("proxynthost");
+                proxyNTDomain = (String) params.get("proxyntdomain");
+                proxyNTWorkstation = (String) params.get("proxyntworkstation");
+            }
+            ProxyConfiguration proxyConfig = null;
+            if(proxyNTHost==null && proxyHost!=null)
+            	proxyConfig = new ProxyConfiguration(proxyHost, proxyPort, null, null, null, null);
+            else if(proxyNTHost!=null)
+            	proxyConfig = new ProxyConfiguration(proxyHost, proxyPort, proxyUser, proxyPassword, proxyNTDomain, proxyNTWorkstation);
+            
+            Scraper scraper = null;//new Scraper(config, workingDir);
+            if(proxyConfig!=null)
+            	scraper = new Scraper(config, workingDir, proxyConfig);
+            else
+            	scraper = new Scraper(config, workingDir);
+            
             String isDebug = (String) params.get("debug");
             if ( CommonUtil.isBooleanTrue(isDebug) ) {
                 scraper.setDebug(true);
-            }
-
-            String proxyHost = (String) params.get("proxyhost");
-            if ( proxyHost != null && !"".equals(proxyHost)) {
-                String proxyPort = (String) params.get("proxyport");
-                if ( proxyPort != null && !"".equals(proxyPort) ) {
-                    int port = Integer.parseInt(proxyPort);
-                    scraper.getHttpClientManager().setHttpProxy(proxyHost, port);
-                } else {
-                    scraper.getHttpClientManager().setHttpProxy(proxyHost);
-                }
-            }
-
-            String proxyUser = (String) params.get("proxyuser");
-            if ( proxyUser != null && !"".equals(proxyUser) ) {
-                String proxyPassword = (String) params.get("proxypassword");
-                String proxyNTHost = (String) params.get("proxynthost");
-                String proxyNTDomain = (String) params.get("proxyntdomain");
-                scraper.getHttpClientManager().setHttpProxyCredentials(proxyUser, proxyPassword, proxyNTHost, proxyNTDomain);
             }
 
             // adds initial variables to the scraper's content, if any
