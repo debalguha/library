@@ -36,7 +36,14 @@
 */
 package org.webharvest.runtime.processors;
 
+import org.htmlcleaner.BrowserCompactXmlSerializer;
+import org.htmlcleaner.CleanerProperties;
+import org.htmlcleaner.CompactXmlSerializer;
 import org.htmlcleaner.HtmlCleaner;
+import org.htmlcleaner.PrettyXmlSerializer;
+import org.htmlcleaner.SimpleXmlSerializer;
+import org.htmlcleaner.TagNode;
+import org.htmlcleaner.XmlSerializer;
 import org.webharvest.definition.HtmlToXmlDef;
 import org.webharvest.exception.ParserException;
 import org.webharvest.runtime.Scraper;
@@ -63,97 +70,100 @@ public class HtmlToXmlProcessor extends BaseProcessor {
 
     public Variable execute(Scraper scraper, ScraperContext context) {
         Variable body = getBodyTextContent(htmlToXmlDef, scraper, context);
-
-        HtmlCleaner cleaner = new HtmlCleaner( body.toString() );
+        CleanerProperties props = new CleanerProperties();
+        HtmlCleaner cleaner = new HtmlCleaner();
 
         final ScriptEngine scriptEngine = scraper.getScriptEngine();
 
         final String advancedXmlEscape = BaseTemplater.execute( htmlToXmlDef.getAdvancedXmlEscape(), scriptEngine);
         if ( advancedXmlEscape != null) {
-            cleaner.setAdvancedXmlEscape(CommonUtil.isBooleanTrue(advancedXmlEscape) );
+        	props.setAdvancedXmlEscape(CommonUtil.isBooleanTrue(advancedXmlEscape) );
         }
 
         final String cdataForScriptAndStyle = BaseTemplater.execute( htmlToXmlDef.getUseCdataForScriptAndStyle(), scriptEngine);
         if ( cdataForScriptAndStyle != null) {
-            cleaner.setUseCdataForScriptAndStyle(CommonUtil.isBooleanTrue(cdataForScriptAndStyle) );
+        	props.setUseCdataForScriptAndStyle(CommonUtil.isBooleanTrue(cdataForScriptAndStyle) );
         }
 
         final String specialEntities = BaseTemplater.execute( htmlToXmlDef.getTranslateSpecialEntities(), scriptEngine);
         if ( specialEntities != null) {
-            cleaner.setTranslateSpecialEntities(CommonUtil.isBooleanTrue(specialEntities) );
+        	props.setTranslateSpecialEntities(CommonUtil.isBooleanTrue(specialEntities) );
         }
 
         final String recognizeUnicodeChars = BaseTemplater.execute(htmlToXmlDef.getRecognizeUnicodeChars(), scriptEngine);
         if ( recognizeUnicodeChars != null) {
-            cleaner.setRecognizeUnicodeChars( CommonUtil.isBooleanTrue(recognizeUnicodeChars) );
+        	props.setRecognizeUnicodeChars( CommonUtil.isBooleanTrue(recognizeUnicodeChars) );
         }
 
         final String omitUnknownTags = BaseTemplater.execute(htmlToXmlDef.getOmitUnknownTags(), scriptEngine);
         if ( omitUnknownTags != null) {
-            cleaner.setOmitUnknownTags( CommonUtil.isBooleanTrue(omitUnknownTags) );
+        	props.setOmitUnknownTags( CommonUtil.isBooleanTrue(omitUnknownTags) );
         }
 
         final String treatUnknownTagsAsContent = BaseTemplater.execute(htmlToXmlDef.getTreatUnknownTagsAsContent(), scriptEngine);
         if ( treatUnknownTagsAsContent != null) {
-            cleaner.setTreatUnknownTagsAsContent( CommonUtil.isBooleanTrue(treatUnknownTagsAsContent) );
+        	props.setTreatUnknownTagsAsContent( CommonUtil.isBooleanTrue(treatUnknownTagsAsContent) );
         }
 
         final String omitDeprecatedTags = BaseTemplater.execute(htmlToXmlDef.getOmitDeprecatedTags(), scriptEngine);
         if ( omitDeprecatedTags != null) {
-            cleaner.setOmitDeprecatedTags( CommonUtil.isBooleanTrue(omitDeprecatedTags) );
+        	props.setOmitDeprecatedTags( CommonUtil.isBooleanTrue(omitDeprecatedTags) );
         }
 
         final String treatDeprTagsAsContent = BaseTemplater.execute(htmlToXmlDef.getTreatDeprecatedTagsAsContent(), scriptEngine);
         if ( treatDeprTagsAsContent != null) {
-            cleaner.setTreatDeprecatedTagsAsContent( CommonUtil.isBooleanTrue(treatDeprTagsAsContent) );
+        	props.setTreatDeprecatedTagsAsContent( CommonUtil.isBooleanTrue(treatDeprTagsAsContent) );
         }
 
         final String omitComments = BaseTemplater.execute(htmlToXmlDef.getOmitComments(), scriptEngine);
         if ( omitComments != null) {
-            cleaner.setOmitComments( CommonUtil.isBooleanTrue(omitComments) );
+        	props.setOmitComments( CommonUtil.isBooleanTrue(omitComments) );
         }
 
         final String omitHtmlEnvelope = BaseTemplater.execute(htmlToXmlDef.getOmitHtmlEnvelope(), scriptEngine);
         if ( omitHtmlEnvelope != null) {
-            cleaner.setOmitHtmlEnvelope( CommonUtil.isBooleanTrue(omitHtmlEnvelope) );
+        	props.setOmitHtmlEnvelope( CommonUtil.isBooleanTrue(omitHtmlEnvelope) );
         }
 
         final String allowMultiWordAttributes = BaseTemplater.execute(htmlToXmlDef.getAllowMultiWordAttributes(), scriptEngine);
         if ( allowMultiWordAttributes != null) {
-            cleaner.setAllowMultiWordAttributes( CommonUtil.isBooleanTrue(allowMultiWordAttributes) );
+        	props.setAllowMultiWordAttributes( CommonUtil.isBooleanTrue(allowMultiWordAttributes) );
         }
 
         final String allowHtmlInsideAttributes = BaseTemplater.execute(htmlToXmlDef.getAllowHtmlInsideAttributes(), scriptEngine);
         if ( allowHtmlInsideAttributes != null) {
-            cleaner.setAllowHtmlInsideAttributes( CommonUtil.isBooleanTrue(allowHtmlInsideAttributes) );
+        	props.setAllowHtmlInsideAttributes( CommonUtil.isBooleanTrue(allowHtmlInsideAttributes) );
         }
 
         final String namespacesAware = BaseTemplater.execute(htmlToXmlDef.getNamespacesAware(), scriptEngine);
         if ( namespacesAware != null) {
-            cleaner.setNamespacesAware( CommonUtil.isBooleanTrue(namespacesAware) );
+        	props.setNamespacesAware( CommonUtil.isBooleanTrue(namespacesAware) );
         } else {
-            cleaner.setNamespacesAware(false);
+        	props.setNamespacesAware(false);
         }
 
         final String pruneTags = BaseTemplater.execute(htmlToXmlDef.getPrunetags(), scriptEngine);
         if ( pruneTags != null) {
-            cleaner.setPruneTags(pruneTags);
+        	props.setPruneTags(pruneTags);
         }
 
         String outputType = BaseTemplater.execute(htmlToXmlDef.getOutputType(), scriptEngine);
-
+        XmlSerializer prettySerializer = new PrettyXmlSerializer(props);
+        XmlSerializer simpleSerializer = new SimpleXmlSerializer(props);
+        XmlSerializer compactSerializer = new CompactXmlSerializer(props);
+        XmlSerializer browserCompactSerializer = new BrowserCompactXmlSerializer(props);
         try {
-            cleaner.clean();
+            TagNode tagNode = cleaner.clean(body.toString());
             String result;
 
             if ( "simple".equalsIgnoreCase(outputType) ) {
-                result = cleaner.getXmlAsString();
+                result = simpleSerializer.getXmlAsString(tagNode);
             } else if ( "pretty".equalsIgnoreCase(outputType) ) {
-                result = cleaner.getPrettyXmlAsString();
+                result = prettySerializer.getXmlAsString(tagNode);
             } else if ( "browser-compact".equalsIgnoreCase(outputType) ) {
-                result = cleaner.getBrowserCompactXmlAsString();
+                result = browserCompactSerializer.getXmlAsString(tagNode);
             }  else {
-                result = cleaner.getCompactXmlAsString();
+                result = compactSerializer.getXmlAsString(tagNode);
             }
 
             return new NodeVariable(result);
