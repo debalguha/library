@@ -106,6 +106,8 @@ public class HttpClientManager {
 		cookieStore = new BasicCookieStore();
 		context = HttpClientContext.create();
 		context.setCookieStore(cookieStore);
+		this.client = getHttpClient();
+		this.httpInfo = new HttpInfo(client);
 	}
 
 	public HttpClientManager(ProxyConfiguration proxyConfiguration) {
