@@ -115,9 +115,9 @@ abstract public class BaseProcessor {
 
         setProperty("ID", id);
 
-        if ( scraper.getLogger().isInfoEnabled() ) {
+        /*if ( scraper.getLogger().isInfoEnabled() ) {
             scraper.getLogger().info(indent + CommonUtil.getClassName(this) + " starts processing..." + idDesc);
-        }
+        }*/
 
         scraper.increaseRunningLevel();
         scraper.setExecutingProcessor(this);
@@ -135,9 +135,9 @@ abstract public class BaseProcessor {
             writeDebugFile(result, id, scraper);
         }
 
-        if ( scraper.getLogger().isInfoEnabled() ) {
+        /*if ( scraper.getLogger().isInfoEnabled() ) {
             scraper.getLogger().info(indent + CommonUtil.getClassName(this) + " processor executed in " + executionTime + "ms." + idDesc);
-        }
+        }*/
 
         return result;
     }
