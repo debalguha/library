@@ -256,4 +256,8 @@ public class HttpClientManager {
 		return httpInfo;
 	}
 
+	public HttpClientContext getContext() {
+		return context;
+	}
+
 }
